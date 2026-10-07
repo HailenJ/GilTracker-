@@ -561,42 +561,49 @@ function updatePill() { $('wherePill').textContent = `${S.world} · ${S.dc}`; }
 // ================= Universalis =================
 const STAT = ['averagePriceNQ','averagePriceHQ','averagePrice','minPriceNQ','minPriceHQ','minPrice','nqSaleVelocity','hqSaleVelocity','regularSaleVelocity','unitsForSale','lastUploadTime'];
 const SHORT = { averagePriceNQ: 'aN', averagePriceHQ: 'aH', averagePrice: 'a', minPriceNQ: 'mN', minPriceHQ: 'mH', minPrice: 'm', nqSaleVelocity: 'vN', hqSaleVelocity: 'vH', regularSaleVelocity: 'v', unitsForSale: 'u', lastUploadTime: 't' };
-async function fetchMarket(scope, ids, { listings = 0, entries = 200, listingFields = null, onBatch = () => {} } = {}) {
+async function fetchMarket(scope, ids, { listings = 0, entries = 200, listingFields = null, onBatch = () => {}, chunk = 50 } = {}) {
   const out = {};
   const fields = STAT.map(f => 'items.' + f).concat((listingFields || []).map(f => 'items.listings.' + f)).join(',');
   const queue = [];
-  for (let i = 0; i < ids.length; i += 100) {
-    let b = ids.slice(i, i + 100);
+  for (let i = 0; i < ids.length; i += chunk) {
+    let b = ids.slice(i, i + chunk);
     if (b.length === 1) b = b[0] === 2 ? [2, 3] : [b[0], 2]; // keep the multi-item response shape
     queue.push(b);
   }
+  const total = queue.length; let failed = 0, badScope = false, lastMsg = '';
+  async function getBatch(b) {
+    const url = `https://universalis.app/api/v2/${encodeURIComponent(scope)}/${b.join(',')}?listings=${listings}&entries=${entries}&fields=${fields}`;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      if (attempt) await sleep(Math.min(8000, 1000 * Math.pow(1.8, attempt)) + Math.random() * 400);
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res.status === 404 || res.status === 400) { badScope = true; return null; }
+        if (!res.ok) { lastMsg = 'error ' + res.status; continue; }
+        return await res.json();
+      } catch (e) { lastMsg = e.message || 'network error'; }
+    }
+    return null;
+  }
   async function worker() {
-    while (queue.length) {
+    while (queue.length && !badScope) {
       const b = queue.shift();
-      const url = `https://universalis.app/api/v2/${encodeURIComponent(scope)}/${b.join(',')}?listings=${listings}&entries=${entries}&fields=${fields}`;
-      let res = null, lastErr;
-      for (let attempt = 0; attempt < 4; attempt++) {
-        try {
-          res = await fetch(url);
-          if (res.status === 429 || res.status >= 500) { res = null; await sleep(900 * (attempt + 1)); continue; }
-          break;
-        } catch (e) { lastErr = e; res = null; await sleep(900 * (attempt + 1)); }
-      }
-      if (!res) throw new Error('Couldn’t reach Universalis. Check your connection and try again.' + (lastErr ? ' (' + lastErr.message + ')' : ''));
-      if (res.status === 404 || res.status === 400) throw new Error(`Universalis doesn’t recognise “${scope}”. Check the world and data center in Settings.`);
-      if (!res.ok) throw new Error(`Universalis returned an error (${res.status}). Try again in a minute.`);
-      const j = await res.json();
-      for (const [id, v] of Object.entries(j.items || {})) {
+      const j = await getBatch(b);
+      if (badScope) break;
+      if (!j) failed++;
+      else for (const [id, v] of Object.entries(j.items || {})) {
         const o = {};
         STAT.forEach(k => { if (v[k]) o[SHORT[k]] = v[k]; });
         if (listingFields && Array.isArray(v.listings)) o.L = v.listings.map(l => [l.pricePerUnit, l.hq ? 1 : 0, l.quantity, l.worldName || l.retainerName || '']);
         out[id] = o;
       }
       onBatch();
-      await sleep(120);
+      await sleep(250);
     }
   }
-  await Promise.all([worker(), worker(), worker()]);
+  await Promise.all([worker(), worker()]);
+  if (badScope) throw new Error(`Universalis doesn’t recognise “${scope}”. Check the world and data center in Settings.`);
+  if (failed && failed >= total) throw new Error('Couldn’t reach Universalis. It may be busy; wait a minute and try again.' + (lastMsg ? ' (' + lastMsg + ')' : ''));
+  Object.defineProperty(out, '_failed', { value: failed, enumerable: false });
   return out;
 }
 async function fetchHistory(id) {
@@ -629,8 +636,9 @@ function progressFor(prefix) {
     tick() { done++; $(prefix + 'Prog').style.width = Math.min(100, 100 * done / total) + '%'; status(prefix, `Fetching prices… ${done} of ${total}`); },
   };
 }
+function failNote(...maps) { const f = maps.reduce((s, m) => s + ((m && m._failed) || 0), 0); return f ? ` ${f} group${f > 1 ? 's' : ''} of prices didn’t load (Universalis was busy), so some items are missing. Scan again to fill them in.` : ''; }
 function status(prefix, msg, err) { const el = $(prefix + 'Status'); el.textContent = msg || ''; el.classList.toggle('err', !!err); }
-const batches = n => Math.ceil(n / 100);
+const batches = n => Math.ceil(n / 50);
 
 // ================= cards =================
 function card({ id, tags = [], kpis = [], hero, heroLabel, onOpen, cls = '', starId }) {
@@ -718,12 +726,12 @@ $('craftScan').addEventListener('click', async () => {
   pr.start(batches(sellIds.length) + batches(buyIds.length), `Checking ${recs.length.toLocaleString()} recipes…`);
   $('craftScan').disabled = true; skeleton($('craftList'));
   try {
-    const sell = await fetchMarket(S.world, sellIds, { listings: 100, entries: 200, onBatch: pr.tick });
+    const sell = await fetchMarket(S.world, sellIds, { listings: 40, entries: 200, onBatch: pr.tick });
     const buy = await fetchMarket(S.dc, buyIds, { listings: 0, entries: 50, onBatch: pr.tick });
     CR = { rids: recs.map(r => r[0]), sell, buy, at: Date.now(), world: S.world, dc: S.dc };
     const saved = store.set('gl3-crafts', CR);
     computeCrafts(); renderCrafts();
-    status('craft', `Scanned ${recs.length.toLocaleString()} recipes.` + (saved ? '' : ' Too large to save for next time.'));
+    status('craft', `Scanned ${recs.length.toLocaleString()} recipes.` + failNote(sell, buy) + (saved ? '' : ' Too large to save for next time.'));
     toast('Crafts updated');
   } catch (e) { status('craft', e.message, true); renderCrafts(); }
   finally { $('craftScan').disabled = false; }
@@ -927,11 +935,11 @@ $('gatherScan').addEventListener('click', async () => {
   const pr = progressFor('gather'); pr.start(batches(ids.length), `Checking ${ids.length.toLocaleString()} materials…`);
   $('gatherScan').disabled = true; skeleton($('gatherList'));
   try {
-    const sell = await fetchMarket(S.world, ids, { listings: 100, entries: 200, onBatch: pr.tick });
+    const sell = await fetchMarket(S.world, ids, { listings: 40, entries: 200, onBatch: pr.tick });
     GR = { ids, sell, at: Date.now() };
     const saved = store.set('gl3-gather', GR);
     computeGather(); renderGather();
-    status('gather', `Scanned ${ids.length.toLocaleString()} materials.` + (saved ? '' : ' Too large to save for next time.'));
+    status('gather', `Scanned ${ids.length.toLocaleString()} materials.` + failNote(sell) + (saved ? '' : ' Too large to save for next time.'));
     toast('Gathering prices updated');
   } catch (e) { status('gather', e.message, true); renderGather(); }
   finally { $('gatherScan').disabled = false; }
@@ -1005,13 +1013,13 @@ $('flipScan').addEventListener('click', async () => {
   pr.start(batches(ids.length) * (mode === 'world' ? 2 : 1), `Checking ${ids.length.toLocaleString()} items…`);
   $('flipScan').disabled = true; skeleton($('flipList'));
   try {
-    const sell = await fetchMarket(S.world, ids, { listings: 100, entries: 200, onBatch: pr.tick });
+    const sell = await fetchMarket(S.world, ids, { listings: 40, entries: 200, onBatch: pr.tick });
     let dc = null;
     if (mode === 'world') dc = await fetchMarket(S.dc, ids, { listings: 10, entries: 0, listingFields: ['pricePerUnit','hq','quantity','worldName'], onBatch: pr.tick });
     FR = { mode, ids, sell, dc, at: Date.now(), world: S.world, dcName: S.dc };
     const saved = store.set('gl3-flips', FR);
     computeFlips(); renderFlips();
-    status('flip', `Checked ${ids.length.toLocaleString()} items.` + (saved ? '' : ' Too large to save for next time.'));
+    status('flip', `Checked ${ids.length.toLocaleString()} items.` + failNote(sell, dc) + (saved ? '' : ' Too large to save for next time.'));
     toast('Flips updated');
   } catch (e) { status('flip', e.message, true); renderFlips(); }
   finally { $('flipScan').disabled = false; }
@@ -1103,7 +1111,7 @@ $('watchScan').addEventListener('click', async () => {
   try {
     const sell = await fetchMarket(S.world, ids, { listings: 100, entries: 200, listingFields: ['pricePerUnit','hq','quantity','retainerName'], onBatch: pr.tick });
     WR = { sell, at: Date.now() }; store.set('gl3-watch', WR);
-    renderWatch(); status('watch', `Checked ${ids.length} item${ids.length === 1 ? '' : 's'}.`);
+    renderWatch(); status('watch', `Checked ${ids.length} item${ids.length === 1 ? '' : 's'}.` + failNote(sell));
     const u = listingStates().filter(x => x.state === 'under').length;
     toast(u ? `${u} listing${u > 1 ? 's' : ''} undercut` : 'All checked');
   } catch (e) { status('watch', e.message, true); }
