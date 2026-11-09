@@ -1,0 +1,27 @@
+# Rebuilds data/game.json from the public FFXIV datamining files every night,
+# so new patches (recipes, nodes, vendors, collectables, leves) appear without touching the app.
+name: Update game data
+on:
+  schedule:
+    - cron: '30 9 * * *'   # daily
+  workflow_dispatch: {}      # or run it by hand from the Actions tab
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build data/game.json
+        run: python tools/build_data.py data/game.json
+      - name: Commit if the game data changed
+        run: |
+          if git diff --quiet -- data/game.json; then echo "No changes"; exit 0; fi
+          git config user.name "gil-ledger-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/game.json
+          git commit -m "Update game data"
+          git push

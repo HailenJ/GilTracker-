@@ -1,0 +1,307 @@
+{
+ "plays": [
+  {
+   "id": "gcsell",
+   "title": "Sell Grand Company turn-in items",
+   "kind": "Daily · steady demand",
+   "sum": "Players leveling crafters and gatherers buy the items their Grand Company asks for every day. Make or gather those items, especially HQ, and sell them.",
+   "steps": [
+    "Open Crafts → GC turn-ins. It lists every item the game’s supply tables ask for that you can make or gather, priced against your costs.",
+    "Tap “Check today’s demand”: items selling far faster than usual today are likely on today’s request lists.",
+    "Make crafted items HQ. Buyers want HQ because it doubles their seals and EXP.",
+    "List in the quantity a turn-in needs (the card shows it), so one purchase covers someone’s whole request.",
+    "Relist after the daily reset, when new requests go out."
+   ],
+   "reported": "Players on the official forums describe buying stacks for turn-ins and listing the rest in turn-in quantities, saying they always sell. They note each level range only has about a dozen possible items, so the same items come up again and again. HQ turn-ins pay double seals and EXP.",
+   "src": [
+    "forum",
+    "gcw",
+    "ui"
+   ]
+  },
+  {
+   "id": "gc",
+   "title": "Do your own Grand Company turn-ins",
+   "kind": "Daily · 10 min",
+   "sum": "Turn in today’s requested crafted and gathered items for seals and EXP. HQ turn-ins pay double. Then turn seals into things that sell.",
+   "steps": [
+    "Open Timers → Missions (or talk to your Personnel Officer) to see today’s Supply and Provisioning requests. There’s one per crafter and gatherer, and it resets daily.",
+    "Make or buy each item, in HQ when possible: HQ doubles both the seals and the EXP.",
+    "Once you’re Sergeant Second Class, use Expert Delivery to trade unneeded gear for seals.",
+    "Spend seals on whatever is worth the most gil right now (the GC seals list in Flips → Currencies), or on Ventures for your retainers.",
+    "Watch your seal cap: it rises with rank, up to 90,000 at Captain. Seals over the cap are wasted."
+   ],
+   "reported": "These missions pay seals and EXP, not gil directly. The gil comes from what the seals buy.",
+   "src": [
+    "gcw",
+    "ge",
+    "prima",
+    "xp"
+   ]
+  },
+  {
+   "id": "craft",
+   "title": "Craft what sells, timed to patches",
+   "kind": "Active · biggest ceiling",
+   "sum": "Craft items with a good margin that also sell every day. Demand peaks right after a patch.",
+   "steps": [
+    "Pick items with both a healthy margin and steady daily sales, not just a big margin.",
+    "Make them HQ when you can; HQ usually sells for more.",
+    "Don’t list more than about a day’s worth of sales at once.",
+    "Raid food and potions sell every week; housing, glamour and new-patch items spike around updates."
+   ],
+   "reported": "Sources put experienced crafters at roughly 1–5 million gil an hour, and say rates swing heavily with your server and the patch cycle.",
+   "src": [
+    "xp",
+    "ts"
+   ]
+  },
+  {
+   "id": "gather",
+   "title": "Timed nodes and old-world materials",
+   "kind": "Active · no startup cost",
+   "sum": "Everything you gather is pure profit. Timed nodes stay valuable because supply is limited, and older-expansion materials sell because few people gather them now.",
+   "steps": [
+    "Favor items that sell many units a day over rare expensive ones: a 1,500-gil item selling 30 a day beats a 20,000-gil one selling weekly.",
+    "Stay in one zone and work several good nodes per trip.",
+    "Plan timed nodes around their Eorzea-time windows."
+   ],
+   "reported": "Sources put gathering at roughly 0.5–2 million gil an hour for a reasonably geared gatherer.",
+   "src": [
+    "xp"
+   ]
+  },
+  {
+   "id": "vent",
+   "title": "Retainer venture loop",
+   "kind": "Passive · a few minutes a day",
+   "sum": "Expert Delivery gives seals, seals buy Ventures, retainers bring back items, and you sell the haul.",
+   "steps": [
+    "Trade unneeded gear through Expert Delivery for seals.",
+    "Buy Ventures with seals.",
+    "Send gathering retainers on targeted ventures for items that actually sell, and avoid hauls that would flood the market.",
+    "Collect and resend daily."
+   ],
+   "reported": "One source estimates about 2–3 million gil a week, mostly passive.",
+   "src": [
+    "xp"
+   ]
+  },
+  {
+   "id": "scrip",
+   "title": "Scrips from collectables and Custom Deliveries",
+   "kind": "Weekly + farmable",
+   "sum": "Earn crafter and gatherer scrips from collectables and weekly Custom Deliveries, then trade them for items that sell.",
+   "steps": [
+    "Do your weekly Custom Deliveries.",
+    "Farm low-level collectables: many tiers pay the same scrips for far less effort.",
+    "Spend scrips on exchange items that sell well on your world."
+   ],
+   "reported": "Guides recommend scrips-to-materials as a reliable, low-crafting gil source, especially high-level materials from the scrip vendor.",
+   "src": [
+    "mg",
+    "xp"
+   ]
+  },
+  {
+   "id": "sky",
+   "title": "Ishgardian Restoration",
+   "kind": "Active · you have it unlocked",
+   "sum": "Firmament turn-ins pay Skybuilders’ Scrips, which buy items at Enie’s exchange that you can resell.",
+   "steps": [
+    "Craft or gather Restoration turn-ins.",
+    "Spend Skybuilders’ Scrips on the exchange items that sell best right now."
+   ],
+   "reported": "Listed by current guides as a scrip-to-gil route alongside Island Sanctuary.",
+   "src": [
+    "xp"
+   ]
+  },
+  {
+   "id": "vendor",
+   "title": "Vendor flips",
+   "kind": "Low effort · needs some gil",
+   "sum": "Some NPC items resell on the market board for far more than vendors charge.",
+   "steps": [
+    "Skip seasonal and reputation-locked vendors; the app already filters these out.",
+    "Pick items that sell several a day, and list a few at a time."
+   ],
+   "reported": "Guides list NPC-to-market flipping as one of the strongest earners without crafting or gathering.",
+   "src": [
+    "xp"
+   ]
+  },
+  {
+   "id": "world",
+   "title": "Cross-world arbitrage",
+   "kind": "Low effort · needs gil",
+   "sum": "Buy items listed cheaper on another world in your data center and sell them on your home world.",
+   "steps": [
+    "Set a high profit floor (around 10,000 gil per item) so the trip is worth it.",
+    "Check sales per day on your home world, where you’ll sell.",
+    "Group buys into one World Visit."
+   ],
+   "reported": "Guides recommend a higher profit floor than for other flips because of travel time.",
+   "src": [
+    "xp"
+   ]
+  },
+  {
+   "id": "maps",
+   "title": "Treasure maps with a party",
+   "kind": "Active · social",
+   "sum": "Join a map party. Everyone brings a map so portals chain, and the drops sell well.",
+   "steps": [
+    "Gather one map a day, or buy maps cheaply on the market board.",
+    "Run with a full party so maps chain into portals."
+   ],
+   "reported": "Sources report roughly 1–2 million gil per chain of five current-tier (Dawntrail) maps, with heavy RNG.",
+   "src": [
+    "ts",
+    "tsn"
+   ]
+  },
+  {
+   "id": "daily",
+   "title": "Dailies that pay gil directly",
+   "kind": "Daily · predictable",
+   "sum": "Duty roulettes, hunt bills and the weekly Challenge Log pay gil straight into your pocket.",
+   "steps": [
+    "Run daily roulettes on jobs you’re leveling.",
+    "Do hunt bills.",
+    "Finish Challenge Log entries; many complete through normal play."
+   ],
+   "reported": "One source estimates about 55,000 gil a week from completing 30 Challenge Log entries.",
+   "src": [
+    "mg",
+    "xp"
+   ]
+  },
+  {
+   "id": "doman",
+   "title": "Doman Enclave donations",
+   "kind": "Weekly",
+   "sum": "Donate eligible items at the Doman Enclave instead of selling them to an NPC. Donations pay more than vendors.",
+   "steps": [
+    "Save eligible items (like Allagan pieces from Wondrous Tails).",
+    "Donate them at the Enclave up to the weekly budget."
+   ],
+   "reported": "One source says donating doubles the NPC value, e.g. a 10,000-gil Allagan piece becomes 20,000.",
+   "src": [
+    "mg"
+   ]
+  },
+  {
+   "id": "bicolor",
+   "title": "Bicolor Gemstone vouchers from FATEs",
+   "kind": "Active · combat",
+   "sum": "FATEs in newer zones pay Bicolor Gemstones; trade 100 for a voucher and sell it.",
+   "steps": [
+    "Do FATEs in Shadowbringers or later zones.",
+    "Trade gemstones for vouchers or other sellable items."
+   ],
+   "reported": "A Patch 7.4 guide reports vouchers selling for about 150,000–180,000 gil each.",
+   "src": [
+    "cq"
+   ]
+  }
+ ],
+ "sources": {
+  "xp": {
+   "label": "XIV Profitability: every gil method ranked (updated Nov 1, 2026)",
+   "url": "https://xivprofitability.com/guides/how-to-make-gil-ffxiv"
+  },
+  "ts": {
+   "label": "TimeSaver: gil per hour methods, Patch 7.5x",
+   "url": "https://timesaver.gg/blog/ffxiv-how-to-make-gil-fast"
+  },
+  "tsn": {
+   "label": "TimeSaver: gil without crafting or gathering, Patch 7.55",
+   "url": "https://timesaver.gg/blog/ffxiv-make-gil-without-crafting-gathering"
+  },
+  "mg": {
+   "label": "MMOGAH: 2026 efficient gil methods",
+   "url": "https://www.mmogah.com/news/ffxiv/2026-efficient-gil-making-methods-in-ffxiv-no-crafting-required"
+  },
+  "gcw": {
+   "label": "FFXIV Online Wiki: Grand Company",
+   "url": "https://ffxiv.consolegameswiki.com/wiki/GC"
+  },
+  "forum": {
+   "label": "Official forums: players buying and reselling GC turn-in items",
+   "url": "https://forum.square-enix.com/ffxiv/threads/405284"
+  },
+  "ui": {
+   "label": "Official UI guide: checking supply and provisioning requests",
+   "url": "https://na.finalfantasyxiv.com/uiguide/faq/faq-other/gc_smissions.html"
+  },
+  "ge": {
+   "label": "Gamer Escape: Supply and Provisioning Missions",
+   "url": "https://ffxiv.gamerescape.com/wiki/Supply_and_Provisioning_Mission"
+  },
+  "prima": {
+   "label": "Prima Games: Grand Company ranks and seal caps",
+   "url": "https://primagames.com/tips/final-fantasy-xiv-grand-company-ranks-guide-2022"
+  },
+  "cq": {
+   "label": "Conquest Capped: gil farming, Patch 7.4",
+   "url": "https://conquestcapped.com/guides/ffxiv/gil-farming/"
+  },
+  "lodestone": {
+   "label": "Official Lodestone news (Patch 7.58 on 10 Nov 2026)",
+   "url": "https://eu.finalfantasyxiv.com/lodestone/news/"
+  },
+  "wiki75": {
+   "label": "FFXIV Online Wiki: Patch 7.5 release dates",
+   "url": "https://ffxiv.consolegameswiki.com/wiki/Patch_7.5"
+  },
+  "senseos": {
+   "label": "Senseos: when each seasonal event usually starts",
+   "url": "https://senseos.gg/guides/final-fantasy-xiv/ffxiv-seasonal-events/"
+  },
+  "nosy": {
+   "label": "The Nosy Gamer: FFXIV calendar up to Evercold (fan blog)",
+   "url": "https://nosygamer.blogspot.com/2026/11/final-fantasy-xiv-calendar-up-to.html"
+  },
+  "tog": {
+   "label": "Thinkofgames: market board guide 2026",
+   "url": "https://thinkofgames.com/ffxiv-market-board-guide-master-buying-selling-and-profiting-in-2026/"
+  }
+ },
+ "researched": "2026-11-09",
+ "events": [
+  {
+   "start": "2026-11-10",
+   "end": "2026-11-10",
+   "title": "Patch 7.58",
+   "confirmed": true,
+   "advice": "A small patch: job balancing and same-region matchmaking, no new recipes listed. Expect normal demand; keep selling your steady items.",
+   "src": [
+    "lodestone",
+    "wiki75"
+   ]
+  },
+  {
+   "start": "2026-12-14",
+   "end": "2026-12-31",
+   "title": "Starlight Celebration (expected)",
+   "confirmed": false,
+   "advice": "In past years it started between 14 and 17 December and ended 31 December. Seasonal furnishings and glamour get attention; event-only shop items are excluded from flips.",
+   "src": [
+    "senseos"
+   ]
+  },
+  {
+   "start": "2027-02-23",
+   "end": "2027-02-23",
+   "title": "Patch 8.0 Evercold (reported)",
+   "confirmed": false,
+   "advice": "A new expansion is the biggest demand spike of the cycle. Guides note new crafting materials are expensive in week one and drop within about two weeks. Keep gil ready, and sell older stock before launch. Date from a fan calendar; confirm on the Lodestone.",
+   "src": [
+    "nosy",
+    "xp",
+    "tog"
+   ]
+  }
+ ]
+}
