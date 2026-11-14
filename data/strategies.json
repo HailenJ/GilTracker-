@@ -55,6 +55,23 @@
    ]
   },
   {
+   "id": "fcw",
+   "title": "Sell to Free Company workshops",
+   "kind": "Steady · bulk buyers",
+   "sum": "Airships, submarines and house builds need low-level parts and materials by the hundreds. Crafting or gathering them for workshop builders is steady income.",
+   "steps": [
+    "Open Crafts → FC workshop. It lists every workshop material you can make or gather, with how many projects use it.",
+    "Favor items used in many projects and selling every day.",
+    "List some in large stacks (like 99) for workshop builders, plus a few smaller stacks.",
+    "Many are low-level parts like nails, joint plates and lumber, quick for your level-80 crafters."
+   ],
+   "reported": "Guides note leveling materials sell for a decent amount because Free Company workshops and submarines need them. The game’s own workshop data shows single materials like Cut Stone or Cobalt Joint Plate needed by the thousands across projects.",
+   "src": [
+    "cqcraft",
+    "wsdata"
+   ]
+  },
+  {
    "id": "gc",
    "title": "Do your own Grand Company turn-ins",
    "kind": "Daily · 10 min",
@@ -317,6 +334,10 @@
   "ivpatch": {
    "label": "Icy Veins: Patch 7.5 gil making",
    "url": "https://www.icy-veins.com/ffxiv/gil-making-patch-guide"
+  },
+  "wsdata": {
+   "label": "Game data: Free Company workshop project requirements (ffxiv-datamining)",
+   "url": "https://github.com/xivapi/ffxiv-datamining"
   }
  },
  "researched": "2026-11-13",

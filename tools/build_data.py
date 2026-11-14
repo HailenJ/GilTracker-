@@ -377,6 +377,34 @@ for d in rows('GCSupplyDuty'):
 gc_pool = [[it, job, min(e['lv']), max(e['lv']), e['cnt']] for (it, job), e in pool.items() if mkt(it)]
 used |= {g[0] for g in gc_pool}
 
+# ---------------- Free Company workshop demand (airships, submarines, housing projects) ----------------
+# Total quantity of each item a workshop project needs, and which projects use it.
+supply = {I(d['#']): I(d['Item']) for d in rows('CompanyCraftSupplyItem')}
+procs = {I(d['#']): d for d in rows('CompanyCraftProcess')}
+parts = {I(d['#']): d for d in rows('CompanyCraftPart')}
+ctype = {I(d['#']): d['Name'] for d in rows('CompanyCraftType')}
+fcw = collections.defaultdict(lambda: {'q': 0, 'p': set()})
+for d in rows('CompanyCraftSequence'):
+    res = I(d['ResultItem'])
+    if res <= 0 or res not in items:
+        continue
+    project = items[res]['Name']
+    for k in range(8):
+        part = parts.get(I(d[f'CompanyCraftPart[{k}]']))
+        if not part:
+            continue
+        for j in range(3):
+            pr = procs.get(I(part[f'CompanyCraftProcess[{j}]']))
+            if not pr:
+                continue
+            for m in range(12):
+                it = supply.get(I(pr[f'SupplyItem[{m}]']), 0)
+                q = I(pr[f'SetQuantity[{m}]']) * I(pr[f'SetsRequired[{m}]'])
+                if it > 0 and q > 0 and mkt(it):
+                    fcw[it]['q'] += q; fcw[it]['p'].add(project)
+fc_demand = {str(it): [v['q'], len(v['p']), sorted(v['p'])[:3]] for it, v in fcw.items()}
+used |= {int(k) for k in fc_demand}
+
 # ---------------- desynthesizable gear, worlds, names, icons ----------------
 desynth = [i for i in items if mkt(i) and I(items[i]['Desynth']) > 0 and I(items[i]['EquipSlotCategory']) > 0]
 # Materia (from spiritbonding, scrips, etc.), for the materia price list
@@ -392,7 +420,7 @@ data = {
     'built': __import__('datetime').datetime.now(__import__('datetime').timezone.utc).strftime('%Y-%m-%dT%H:%MZ'),
     'r': recipes, 'n': names, 'm': marketable, 'c': {c: uic.get(c, '') for c in cats},
     'g': gather_sell, 'gcol': gather_col, 'gf': gather_all, 'v': vendors, 'b': books, 'w': worlds, 'i': icons,
-    'rlt': rlt_out, 'x': exchanges, 'cs': list(cs.values()), 'lv': leves, 'rt': ventures, 'ds': desynth, 'gcs': gc_pool, 'mt': materia,
+    'rlt': rlt_out, 'x': exchanges, 'cs': list(cs.values()), 'lv': leves, 'rt': ventures, 'ds': desynth, 'gcs': gc_pool, 'mt': materia, 'fc': fc_demand,
 }
 os.makedirs(os.path.dirname(os.path.abspath(OUT)), exist_ok=True)
 # Leave the file untouched when nothing but the timestamp would change, so the nightly job only commits real updates.

@@ -640,11 +640,43 @@ function renderGcDemand() {
       } });
   });
 }
+// ---- Free Company workshop demand ----
+const FCW = D.fc || {}; // item -> [total needed across projects, number of projects, sample projects]
+function fcwList() {
+  if (!AGG) return [];
+  const lv = lvls(), fee = taxS(), out = [];
+  for (const [k, f] of Object.entries(FCW)) {
+    const id = +k, rec = (BY_RESULT.get(id) || []).find(r => craftable(r, lv)), gat = canGather(id);
+    if (!rec && !gat) continue;
+    const s = stat(AGG.data[id], false); if (!s.price || s.stale || (S.hideOdd !== false && suspicious(s))) continue;
+    let cost = 0, src = 'gather';
+    if (!gat) { const u = unitCost(id); if (u.cost == null) continue; cost = u.cost; src = 'craft'; }
+    const profit = s.price * fee - cost; if (profit <= 0) continue;
+    out.push({ kind: 'fcw', id, res: id, rec, src, s, cost, profit, price: s.price, vel: s.vel, daily: profit * Math.min(s.vel, 20), need: f[0], projects: f[1], sample: f[2] });
+  }
+  return out.sort((a, b) => b.daily - a.daily);
+}
+function renderFcw() {
+  const el = $('craftList'), list = fcwList();
+  $('craftSummary').textContent = list.length ? `${list.length} workshop materials you can make or gather` : '';
+  if (!list.length) return emptyState(el, 'Nothing to sell yet', 'Refresh prices first, and check your levels in Settings.');
+  paginate(el, list, x => card({ id: x.id, tags: [[`used in ${x.projects} workshop project${x.projects > 1 ? 's' : ''}`, 'gold'], [x.src === 'gather' ? 'gather it' : (x.rec ? JOBS[x.rec[1]] + ' ' + x.rec[2] : 'craft')], [x.vel.toFixed(1) + '/day']],
+    badge: '+' + fmtK(x.profit), badgeCls: 'pos', kpis: [['Sells', fmtK(x.price)], ['Cost', x.src === 'gather' ? 'free' : fmtK(x.cost)], ['Per day', fmtK(x.daily), 'gold']],
+    onOpen: () => {
+      const cx = craftResults.find(c => c.res === x.id), gx = gatherResults.find(g => g.id === x.id);
+      openDetail(x.id, cx || gx || { kind: 'item', id: x.id });
+      const b = document.createElement('div');
+      b.innerHTML = `<div class="callout" style="margin-bottom:14px"><div class="muted" style="font-size:13px">Free Company workshop material</div><b>Needed in ${x.projects} project${x.projects > 1 ? 's' : ''}, ${fmt(x.need)} in total</b>
+        <div class="muted" style="font-size:14px">Used in builds like ${x.sample.map(esc).join(', ')}. Workshops buy these in bulk, so list in larger stacks (for example 99) as well as smaller ones.</div></div>`;
+      $('detailBody').prepend(b);
+    } }));
+}
 function renderCrafts() {
   if ($('craftMode').children.length) syncCraftMode();
   if (P.craftMode === 'scrip') return renderScripFarm();
   if (P.craftMode === 'leve') return renderLeves();
   if (P.craftMode === 'gcd') return renderGcDemand();
+  if (P.craftMode === 'fcw') return renderFcw();
   const el = $('craftList');
   if (!AGG) { $('craftSummary').textContent = ''; return emptyState(el, 'No prices yet', 'Tap Refresh prices. It checks crafting, gathering and flips together, usually in under a minute.'); }
   const list = craftFiltered();
@@ -655,6 +687,7 @@ function renderCrafts() {
     if (x.cost > 0) tags.push([Math.round(x.roi * 100) + '% ROI']);
     if (x.hq) tags.push(['HQ']); if (x.st) tags.push(['★'.repeat(x.st)]); if (x.amt > 1) tags.push(['×' + x.amt]);
     if (x.missing) tags.push(['missing prices', 'bad']);
+    if (FCW[x.res]) tags.push(['FC workshop demand', 'gold']);
     if (x.gph > 0) tags.push([fmtK(x.gph) + '/hr']);
     if (x.sellMats) tags.push(['materials worth more', 'warn']);
     if (x.statOk === false) tags.push(['NQ price (stats low)', 'warn']);
@@ -912,6 +945,8 @@ function scanIds() {
   closure(gcRecs).forEach(id => craftIds.add(id));
   (D.rt || []).forEach(v => craftIds.add(v[0]));
   (D.mt || []).forEach(id => craftIds.add(id));
+  Object.keys(D.fc || {}).forEach(k => craftIds.add(+k));
+  closure(Object.keys(D.fc || {}).map(k => (BY_RESULT.get(+k) || []).find(r => craftable(r, lv))).filter(Boolean)).forEach(id => craftIds.add(id));
   const gids = Object.keys(GATH).map(Number), vids = Object.keys(VEND).map(Number);
   const all = new Set([...craftIds, ...gids, ...vids, ...S.watch, ...S.listed, ...Object.keys(S.alerts || {}).map(Number), ...EXCH.map(e => e[1])]);
   const ids = [...all].filter(id => MARK.has(id));
@@ -1107,7 +1142,7 @@ function renderChains() {
   const list = gatherChains();
   $('gatherSummary').textContent = list.length ? `${list.length} things you can make from only what you gather, where crafting beats selling the raw materials` : '';
   if (!list.length) return emptyState(el, 'Nothing found yet', 'Check your crafter and gatherer levels and story progress in Settings.');
-  paginate(el, list, x => card({ id: x.id, tags: [[JOBS[x.r[1]] + ' ' + x.r[2], 'gold'], ['all from your gathering', 'good'], [`${x.ch.gather.size} material${x.ch.gather.size > 1 ? 's' : ''}`]].concat(x.ch.crafts.length ? [[`${x.ch.crafts.length} part${x.ch.crafts.length > 1 ? 's' : ''} to craft first`]] : []),
+  paginate(el, list, x => card({ id: x.id, tags: [[JOBS[x.r[1]] + ' ' + x.r[2], 'gold'], ['all from your gathering', 'good']].concat(FCW[x.id] ? [['FC workshop demand', 'gold']] : []).concat([ [`${x.ch.gather.size} material${x.ch.gather.size > 1 ? 's' : ''}`]]).concat(x.ch.crafts.length ? [[`${x.ch.crafts.length} part${x.ch.crafts.length > 1 ? 's' : ''} to craft first`]] : []),
     badge: `${fmtK(x.gph)}/hr`, badgeCls: 'gold', kpis: [['Sells for', fmtK(x.value)], ['Raw mats worth', fmtK(x.rawValue)], ['Crafting adds', '+' + fmtK(x.adds), 'pos']],
     onOpen: () => openChain(x) }));
 }
@@ -2022,6 +2057,7 @@ const SRC = {
 Object.entries(STRAT.sources || {}).forEach(([k, v]) => { SRC[k] = [v.label, v.url]; });
 const EXTRA_TOOLS = {
   chain: ['Open Gather → craft', () => { P.gatherMode = 'chain'; saveP(); showTab('gather'); renderGather(); }],
+  fcw: ['Open Crafts → FC workshop', () => { P.craftMode = 'fcw'; saveP(); showTab('crafts'); renderCrafts(); }],
   materia: ['See materia prices', () => { P.flipMode = 'materia'; saveP(); showTab('flips'); renderFlips(); }],
 };
 const goTo = (tab, set) => () => { if (set) set(); saveP(); showTab(tab); if (typeof computeFlips === 'function') { computeFlips(); } renderAllViews(); };
@@ -2406,8 +2442,8 @@ bindP('flipSort', 'flipSort', 'change', str, renderFlips);
 bindP('flipMinRoi', 'flipMinRoi', 'input', num, debounce(renderFlips, 200));
 $('budget').value = P.budget; $('maxItems').value = P.maxItems;
 chipGroup($('craftChips'), PRESETS.map(p => [p.id, p.label]), () => P.craftChips, cur => { P.craftChips = cur; saveP(); renderCrafts(); });
-function syncCraftMode() { const s = P.craftMode !== 'sell'; const modes = ['sell', 'gcd', 'scrip', 'leve']; document.querySelectorAll('#craftMode .chip').forEach((c, i) => c.setAttribute('aria-pressed', String(modes[i] === (P.craftMode || 'sell')))); $('scripHelp').textContent = P.craftMode === 'gcd' ? 'Items Grand Company supply missions ask players for. Players leveling crafters and gatherers buy these every day, HQ especially. Tap “Check today’s demand” to see which are selling unusually fast right now.' : P.craftMode === 'leve' ? 'Crafting leves ranked by gil you keep per allowance after making the item. HQ turn-ins pay more. Uses your crafter levels and story progress.' : 'Collectables you can craft and turn in for scrips, cheapest per scrip first. Priced live; adapts to your crafter levels and story progress.'; $('craftChips').hidden = s; $('scripHelp').hidden = !s; $('scripGoalRow').hidden = P.craftMode !== 'scrip'; $('gcdBox').hidden = P.craftMode !== 'gcd'; document.querySelectorAll('#v-crafts .filters, #v-crafts details.more').forEach(e => e.hidden = s); }
-chipGroup($('craftMode'), [['sell', 'Craft to sell'], ['gcd', 'GC turn-ins'], ['scrip', 'Scrip farm'], ['leve', 'Leves']], () => [P.craftMode || 'sell'], cur => { P.craftMode = cur[0]; saveP(); syncCraftMode(); renderCrafts(); }, true);
+function syncCraftMode() { const s = P.craftMode !== 'sell'; const modes = ['sell', 'gcd', 'fcw', 'scrip', 'leve']; document.querySelectorAll('#craftMode .chip').forEach((c, i) => c.setAttribute('aria-pressed', String(modes[i] === (P.craftMode || 'sell')))); $('scripHelp').textContent = P.craftMode === 'fcw' ? 'Materials Free Company workshops need for airships, submarines and house builds. These projects use them by the hundreds, so they sell steadily. Shows what you can craft or gather, priced against your costs.' : P.craftMode === 'gcd' ? 'Items Grand Company supply missions ask players for. Players leveling crafters and gatherers buy these every day, HQ especially. Tap “Check today’s demand” to see which are selling unusually fast right now.' : P.craftMode === 'leve' ? 'Crafting leves ranked by gil you keep per allowance after making the item. HQ turn-ins pay more. Uses your crafter levels and story progress.' : 'Collectables you can craft and turn in for scrips, cheapest per scrip first. Priced live; adapts to your crafter levels and story progress.'; $('craftChips').hidden = s; $('scripHelp').hidden = !s; $('scripGoalRow').hidden = P.craftMode !== 'scrip'; $('gcdBox').hidden = P.craftMode !== 'gcd'; document.querySelectorAll('#v-crafts .filters, #v-crafts details.more').forEach(e => e.hidden = s); }
+chipGroup($('craftMode'), [['sell', 'Craft to sell'], ['gcd', 'GC turn-ins'], ['fcw', 'FC workshop'], ['scrip', 'Scrip farm'], ['leve', 'Leves']], () => [P.craftMode || 'sell'], cur => { P.craftMode = cur[0]; saveP(); syncCraftMode(); renderCrafts(); }, true);
 syncCraftMode();
 chipGroup($('gatherChips'), GJOBS.map(([k, n]) => [k, n]), () => P.gatherChips, cur => { P.gatherChips = cur; saveP(); renderGather(); });
 chipGroup($('gatherMode'), [['sell', 'Gather to sell'], ['chain', 'Gather → craft'], ['zone', 'Best zones'], ['scrip', 'Scrip farm']], () => [P.gatherMode || 'sell'], cur => { P.gatherMode = cur[0]; saveP(); $('gScripGoalRow').hidden = P.gatherMode !== 'scrip'; renderGather(); }, true);
