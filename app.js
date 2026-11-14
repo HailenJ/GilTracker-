@@ -911,6 +911,7 @@ function scanIds() {
   const gcRecs = (D.gcs || []).map(g => { craftIds.add(g[0]); return g[1] < 8 ? (BY_RESULT.get(g[0]) || []).find(r => craftable(r, lv)) : null; }).filter(Boolean);
   closure(gcRecs).forEach(id => craftIds.add(id));
   (D.rt || []).forEach(v => craftIds.add(v[0]));
+  (D.mt || []).forEach(id => craftIds.add(id));
   const gids = Object.keys(GATH).map(Number), vids = Object.keys(VEND).map(Number);
   const all = new Set([...craftIds, ...gids, ...vids, ...S.watch, ...S.listed, ...Object.keys(S.alerts || {}).map(Number), ...EXCH.map(e => e[1])]);
   const ids = [...all].filter(id => MARK.has(id));
@@ -1060,7 +1061,85 @@ function renderZones() {
     el.append(d);
   });
 }
+// ---- Gather → craft: things you can make entirely from what you gather yourself ----
+// Each chain expands a recipe down to raw materials, using only materials you can gather (or craft from gathered ones).
+// It compares selling the finished item with simply selling the raw materials, and estimates gil per hour of your time.
+function chainFor(r, lv, depth = 0, seen = new Set()) {
+  const acc = { gather: new Map(), crafts: [], ok: true };
+  for (const [id, n] of r[10]) {
+    if (!expandLeaf(id, n, acc, lv, depth + 1, seen)) return null;
+  }
+  return acc;
+}
+function expandLeaf(id, qty, acc, lv, depth, seen) {
+  if (canGather(id)) { acc.gather.set(id, (acc.gather.get(id) || 0) + qty); return true; }
+  if (depth > 4 || seen.has(id)) return false;
+  const sub = (BY_RESULT.get(id) || []).find(rc => craftable(rc, lv)); if (!sub) return false;
+  const crafts = Math.ceil(qty / (sub[5] || 1)); seen.add(id);
+  for (const [s, n] of sub[10]) { if (!expandLeaf(s, n * crafts, acc, lv, depth + 1, seen)) { seen.delete(id); return false; } }
+  seen.delete(id);
+  acc.crafts.push({ rec: sub, crafts, depth });
+  return true;
+}
+function gatherChains() {
+  if (!AGG) return [];
+  const lv = lvls(), fee = taxS(), out = [];
+  for (const r of D.r) {
+    if (!r[12] || !craftable(r, lv)) continue;
+    const s = stat(AGG.data[r[4]], false);
+    if (!s.price || s.vel < 0.5 || s.stale || (S.hideOdd !== false && suspicious(s))) continue;
+    const ch = chainFor(r, lv); if (!ch || ch.gather.size > 6) continue;
+    let rawValue = 0, gmins = 0;
+    for (const [id, q] of ch.gather) {
+      const g = GALL[id] || [0], fish = (g[0] & 4) && !(g[0] & 3);
+      rawValue += stat((AGG.data[id]) || {}, false).fair * q * fee;
+      gmins += q * (fish ? T.fishUnit : T.gatherUnit);
+    }
+    const minutes = ch.gather.size * T.setup + gmins + ch.crafts.reduce((a, c) => a + c.crafts * T.sub, 0) + T.craft + T.list;
+    const value = s.price * fee * (r[5] || 1);
+    out.push({ kind: 'chain', r, id: r[4], res: r[4], s, ch, value, rawValue, adds: value - rawValue, minutes, gph: value / minutes * 60, vel: s.vel, price: s.price });
+  }
+  return out.filter(x => x.adds > 0).sort((a, b) => b.gph * Math.min(1, b.vel) - a.gph * Math.min(1, a.vel));
+}
+function renderChains() {
+  const el = $('gatherList');
+  if (!AGG) { $('gatherSummary').textContent = ''; return emptyState(el, 'No prices yet', 'Tap Refresh prices first.'); }
+  const list = gatherChains();
+  $('gatherSummary').textContent = list.length ? `${list.length} things you can make from only what you gather, where crafting beats selling the raw materials` : '';
+  if (!list.length) return emptyState(el, 'Nothing found yet', 'Check your crafter and gatherer levels and story progress in Settings.');
+  paginate(el, list, x => card({ id: x.id, tags: [[JOBS[x.r[1]] + ' ' + x.r[2], 'gold'], ['all from your gathering', 'good'], [`${x.ch.gather.size} material${x.ch.gather.size > 1 ? 's' : ''}`]].concat(x.ch.crafts.length ? [[`${x.ch.crafts.length} part${x.ch.crafts.length > 1 ? 's' : ''} to craft first`]] : []),
+    badge: `${fmtK(x.gph)}/hr`, badgeCls: 'gold', kpis: [['Sells for', fmtK(x.value)], ['Raw mats worth', fmtK(x.rawValue)], ['Crafting adds', '+' + fmtK(x.adds), 'pos']],
+    onOpen: () => openChain(x) }));
+}
+function openChain(x) {
+  const cx = craftResults.find(c => c.res === x.id);
+  openDetail(x.id, cx || { kind: 'item', id: x.id });
+  const g = [...x.ch.gather.entries()].map(([id, q]) => `<li>${q} × ${esc(nm(id))} <span class="muted">· ${esc(gatherHint(id))}</span></li>`).join('');
+  const c = x.ch.crafts.slice().sort((a, b) => b.depth - a.depth).map(e => `<li>${e.crafts} × ${esc(nm(e.rec[4]))} <span class="muted">· ${JOBNAMES[e.rec[1]]}</span></li>`).join('');
+  const sug = suggest(x.s);
+  const b = document.createElement('div');
+  b.innerHTML = `<div class="callout" style="margin-bottom:14px"><div class="muted" style="font-size:13px">Made entirely from your own gathering</div><b>~${fmtK(x.gph)} gil an hour</b>
+    <div class="muted" style="font-size:14px">Sells for ~${fmt(x.value)} after fees. Selling the raw materials instead would bring ~${fmt(x.rawValue)}, so crafting adds ~${fmt(x.adds)}. About ${Math.round(x.minutes)} min from first node to listing.</div></div>
+    <div class="section" style="margin-top:0"><h4>How to do it</h4><div class="psteps">
+      <div class="pstep"><div class="pnum">1</div><div class="pbody"><b>Gather</b><ul>${g}</ul></div></div>
+      ${c ? `<div class="pstep"><div class="pnum">2</div><div class="pbody"><b>Craft these parts first</b><ul>${c}</ul></div></div>` : ''}
+      <div class="pstep"><div class="pnum">${c ? 3 : 2}</div><div class="pbody"><b>Craft</b><ul><li>1 × ${esc(nm(x.id))} <span class="muted">· ${JOBNAMES[x.r[1]]}</span></li></ul></div></div>
+      <div class="pstep"><div class="pnum">${c ? 4 : 3}</div><div class="pbody"><b>List it</b><ul><li>${sug ? 'At about ' + fmt(sug.price) + ' each' : 'Near the cheapest listing'}</li></ul></div></div></div></div>`;
+  $('detailBody').prepend(b);
+}
+function renderMateria() {
+  const el = $('flipList');
+  if (!AGG) { $('flipSummary').textContent = ''; return emptyState(el, 'No prices yet', 'Tap Refresh prices first.'); }
+  const kind = n => /Craftsman/.test(n) ? 'Crafter' : /Gatherer/.test(n) ? 'Gatherer' : 'Combat';
+  const list = (D.mt || []).map(id => { const s = stat(AGG.data[id], false); return { id, s, price: s.price, vel: s.vel, daily: s.price * taxS() * s.vel, kind: kind(nm(id)) }; })
+    .filter(x => x.price > 0 && !x.s.stale).sort((a, b) => b.daily - a.daily);
+  $('flipSummary').textContent = `${list.length} materia with recent prices · most gil per day first`;
+  if (!list.length) return emptyState(el, 'No materia prices yet', 'Refresh prices first.');
+  paginate(el, list, x => card({ id: x.id, tags: [[x.kind, x.kind === 'Combat' ? '' : 'gold'], [x.vel.toFixed(1) + '/day']], badge: fmtK(x.price), badgeCls: 'pos',
+    kpis: [['Sells', fmtK(x.price)], ['Sold/day', x.vel.toFixed(1)], ['Per day', fmtK(x.daily), 'gold']], onOpen: () => openDetail(x.id, { kind: 'item', id: x.id }) }));
+}
 function renderGather() {
+  if (P.gatherMode === 'chain') return renderChains();
   if (P.gatherMode === 'zone') return renderZones();
   if (P.gatherMode === 'scrip') { if (!AGG) { $('gatherSummary').textContent = ''; } return renderGatherScrips(); }
   const el = $('gatherList');
@@ -1124,6 +1203,7 @@ const FLIP_HELP = {
   world: 'Items listed cheaper on another world in your data center than they sell for on your world. Uses every item from the price check.',
   cur: 'What your scrips, tomestones and seals are worth in gil: the best things to buy with them and sell. Some need unlocks or ranks.',
   vent: 'Targeted retainer ventures ranked by what the haul sells for. Quantity depends on your retainer’s gear; this assumes the top amount.',
+  materia: 'What materia sells for on your world. Extract materia from crafting and gathering gear at 100% spiritbond, keep what you meld, and sell the rest. Sorted by what sells most.',
   desynth: 'Rough guide: cheap gear whose recipe materials sell for much more. Desynthesis returns some of these materials at random, so check the yields link before buying a stack.',
 };
 const CUR = [['purpleC', 'Purple crafter scrips'], ['purpleG', 'Purple gatherer scrips'], ['orangeC', 'Orange crafter scrips'], ['orangeG', 'Orange gatherer scrips'], ['poetics', 'Poetics'], ['sky', 'Skybuilders’ scrips'], ['gc', 'GC seals']];
@@ -1180,6 +1260,7 @@ function renderFlips() {
   if (P.flipMode === 'cur') return renderCurrency();
   if (P.flipMode === 'vent') return renderVentures();
   if (P.flipMode === 'desynth') return renderDesynth();
+  if (P.flipMode === 'materia') return renderMateria();
   const el = $('flipList');
   if (!AGG) { $('flipSummary').textContent = ''; return emptyState(el, 'No prices yet', 'Tap Refresh prices. It checks everything at once, usually in under a minute.'); }
   const list = flipFiltered();
@@ -1939,6 +2020,10 @@ const SRC = {
   cq: ['Conquest Capped: gil farming, Patch 7.4', 'https://conquestcapped.com/guides/ffxiv/gil-farming/'],
 };
 Object.entries(STRAT.sources || {}).forEach(([k, v]) => { SRC[k] = [v.label, v.url]; });
+const EXTRA_TOOLS = {
+  chain: ['Open Gather → craft', () => { P.gatherMode = 'chain'; saveP(); showTab('gather'); renderGather(); }],
+  materia: ['See materia prices', () => { P.flipMode = 'materia'; saveP(); showTab('flips'); renderFlips(); }],
+};
 const goTo = (tab, set) => () => { if (set) set(); saveP(); showTab(tab); if (typeof computeFlips === 'function') { computeFlips(); } renderAllViews(); };
 const PLAYS = [
   { id: 'gcsell', title: 'Sell Grand Company turn-in items', kind: 'Daily · steady demand',
@@ -2031,8 +2116,9 @@ const PLAYS = [
 (STRAT.plays || []).forEach(sp => {
   const p = PLAYS.find(x => x.id === sp.id);
   if (p) Object.assign(p, { title: sp.title, kind: sp.kind, sum: sp.sum, steps: sp.steps, reported: sp.reported, src: sp.src });
-  else PLAYS.push(Object.assign({ fit: () => ({ ok: true, why: '' }), tool: null }, sp));
+  else PLAYS.push(Object.assign({ fit: () => ({ ok: true, why: '' }), tool: EXTRA_TOOLS[sp.id] || null }, sp));
 });
+{ const order = (STRAT.plays || []).map(p => p.id); PLAYS.sort((a, b) => (order.indexOf(a.id) + 1 || 999) - (order.indexOf(b.id) + 1 || 999)); }
 // Value of one seal, from what seals buy and actually sell (median of the best few, to stay conservative).
 function sealValue() {
   const L = currencyFlips('gc').filter(x => x.vel >= 1 && !suspicious(x.s)).sort((a, b) => b.perUnit - a.perUnit).slice(0, 5).map(x => x.perUnit);
@@ -2324,9 +2410,9 @@ function syncCraftMode() { const s = P.craftMode !== 'sell'; const modes = ['sel
 chipGroup($('craftMode'), [['sell', 'Craft to sell'], ['gcd', 'GC turn-ins'], ['scrip', 'Scrip farm'], ['leve', 'Leves']], () => [P.craftMode || 'sell'], cur => { P.craftMode = cur[0]; saveP(); syncCraftMode(); renderCrafts(); }, true);
 syncCraftMode();
 chipGroup($('gatherChips'), GJOBS.map(([k, n]) => [k, n]), () => P.gatherChips, cur => { P.gatherChips = cur; saveP(); renderGather(); });
-chipGroup($('gatherMode'), [['sell', 'Gather to sell'], ['zone', 'Best zones'], ['scrip', 'Scrip farm']], () => [P.gatherMode || 'sell'], cur => { P.gatherMode = cur[0]; saveP(); $('gScripGoalRow').hidden = P.gatherMode !== 'scrip'; renderGather(); }, true);
+chipGroup($('gatherMode'), [['sell', 'Gather to sell'], ['chain', 'Gather → craft'], ['zone', 'Best zones'], ['scrip', 'Scrip farm']], () => [P.gatherMode || 'sell'], cur => { P.gatherMode = cur[0]; saveP(); $('gScripGoalRow').hidden = P.gatherMode !== 'scrip'; renderGather(); }, true);
 $('gScripGoalRow').hidden = P.gatherMode !== 'scrip'; $('gScripGoal').value = P.scripGoal;
-chipGroup($('flipModes'), [['vendor', 'Vendor items'], ['world', 'Other worlds'], ['cur', 'Currencies'], ['vent', 'Ventures'], ['desynth', 'Desynth']], () => [P.flipMode], cur => { P.flipMode = cur[0]; saveP(); computeFlips(); renderFlips(); }, true);
+chipGroup($('flipModes'), [['vendor', 'Vendor items'], ['world', 'Other worlds'], ['cur', 'Currencies'], ['materia', 'Materia'], ['vent', 'Ventures'], ['desynth', 'Desynth']], () => [P.flipMode], cur => { P.flipMode = cur[0]; saveP(); computeFlips(); renderFlips(); }, true);
 chipGroup($('curChips'), CUR, () => [S.curCh || 'purpleC'], cur => { S.curCh = cur[0]; saveS(); computeFlips(); renderFlips(); }, true);
 
 // ================= OFFLINE =================

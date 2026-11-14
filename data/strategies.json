@@ -20,6 +20,41 @@
    ]
   },
   {
+   "id": "materia",
+   "title": "Spiritbond materia",
+   "kind": "Passive · happens while you play",
+   "sum": "Gear builds spiritbond as you craft and gather. At 100% you extract a materia, keep the gear, and sell materia you don’t need.",
+   "steps": [
+    "Do the quest “Forging the Spirit” to unlock materia extraction.",
+    "Wear the gear you want to spiritbond while crafting or gathering.",
+    "At 100%, right-click the gear and choose Extract Materia. The gear isn’t consumed.",
+    "Sell the materia you won’t meld; check which sell best in Flips → Materia."
+   ],
+   "reported": "Guides say crafter and gatherer materia sell steadily because players re-meld gear every patch. Icy Veins calls spiritbonding the best source of gathering materia and scrips the best source of crafting materia, with an optimized gathering setup making around 65 materia an hour.",
+   "src": [
+    "xpmat",
+    "ivsb",
+    "ivpatch"
+   ]
+  },
+  {
+   "id": "chain",
+   "title": "Gather, refine, then sell",
+   "kind": "Active · no material costs",
+   "sum": "Gather raw materials yourself, turn them into lumber, ingots, cloth or finished items, and sell those. You keep the whole margin.",
+   "steps": [
+    "Open Gather → craft. It lists items you can make entirely from what you gather, comparing crafting with selling the raw materials.",
+    "Pick ones where crafting adds the most and the item sells every day.",
+    "Gather the materials in one trip, craft the parts, then the item.",
+    "Low-level materials and parts count too: guides note they sell because endgame players skip them, and Free Company workshops and submarines need them."
+   ],
+   "reported": "Guides say intermediate materials like lumber, ingots, thread and leather can earn more than selling gear, and many popular furnishings only need lumber and a low-level Carpenter.",
+   "src": [
+    "cqcraft",
+    "xp"
+   ]
+  },
+  {
    "id": "gc",
    "title": "Do your own Grand Company turn-ins",
    "kind": "Daily · 10 min",
@@ -266,9 +301,25 @@
   "tog": {
    "label": "Thinkofgames: market board guide 2026",
    "url": "https://thinkofgames.com/ffxiv-market-board-guide-master-buying-selling-and-profiting-in-2026/"
+  },
+  "cqcraft": {
+   "label": "Conquest Capped: crafting gil farm guide 2026",
+   "url": "https://conquestcapped.com/guides/ffxiv/crafting-gil-farm/"
+  },
+  "ivsb": {
+   "label": "Icy Veins: spiritbonding for crafting and gathering",
+   "url": "https://www.icy-veins.com/ffxiv/spiritbonding"
+  },
+  "xpmat": {
+   "label": "XIV Profitability: materia and spiritbonding for gil",
+   "url": "https://xivprofitability.com/guides/ffxiv-materia-gil"
+  },
+  "ivpatch": {
+   "label": "Icy Veins: Patch 7.5 gil making",
+   "url": "https://www.icy-veins.com/ffxiv/gil-making-patch-guide"
   }
  },
- "researched": "2026-11-09",
+ "researched": "2026-11-13",
  "events": [
   {
    "start": "2026-11-10",

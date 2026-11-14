@@ -379,6 +379,10 @@ used |= {g[0] for g in gc_pool}
 
 # ---------------- desynthesizable gear, worlds, names, icons ----------------
 desynth = [i for i in items if mkt(i) and I(items[i]['Desynth']) > 0 and I(items[i]['EquipSlotCategory']) > 0]
+# Materia (from spiritbonding, scrips, etc.), for the materia price list
+materia_cat = {k for k, v in uic.items() if v == 'Materia'}
+materia = sorted(i for i in items if mkt(i) and I(items[i]['ItemUICategory']) in materia_cat)
+used |= set(materia)
 worlds = {I(d['#']): d['Name'] for d in rows('World') if d['IsPublic'] == 'True' and d['Name']}
 names = {str(i): items[i]['Name'] for i in used if i in items and items[i]['Name']}
 marketable = sorted(i for i in used if mkt(i))
@@ -388,7 +392,7 @@ data = {
     'built': __import__('datetime').datetime.now(__import__('datetime').timezone.utc).strftime('%Y-%m-%dT%H:%MZ'),
     'r': recipes, 'n': names, 'm': marketable, 'c': {c: uic.get(c, '') for c in cats},
     'g': gather_sell, 'gcol': gather_col, 'gf': gather_all, 'v': vendors, 'b': books, 'w': worlds, 'i': icons,
-    'rlt': rlt_out, 'x': exchanges, 'cs': list(cs.values()), 'lv': leves, 'rt': ventures, 'ds': desynth, 'gcs': gc_pool,
+    'rlt': rlt_out, 'x': exchanges, 'cs': list(cs.values()), 'lv': leves, 'rt': ventures, 'ds': desynth, 'gcs': gc_pool, 'mt': materia,
 }
 os.makedirs(os.path.dirname(os.path.abspath(OUT)), exist_ok=True)
 # Leave the file untouched when nothing but the timestamp would change, so the nightly job only commits real updates.
