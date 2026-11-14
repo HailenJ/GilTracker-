@@ -1,6 +1,6 @@
 // Gil Ledger service worker: opens instantly and works offline.
 // App files and game data: serve from cache, refresh in the background. Prices (Universalis) always go to the network.
-const VERSION = 'gl-v10';
+const VERSION = 'gl-v11';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'vendor/sim.js', 'vendor/solver.js', 'manifest.webmanifest', 'icons/icon-192.png', 'data/game.json', 'data/strategies.json'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

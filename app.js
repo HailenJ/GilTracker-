@@ -946,6 +946,7 @@ function scanIds() {
   (D.rt || []).forEach(v => craftIds.add(v[0]));
   (D.mt || []).forEach(id => craftIds.add(id));
   Object.keys(D.fc || {}).forEach(k => craftIds.add(+k));
+  Object.values(D.ar || {}).forEach(v => v[0].forEach(o => craftIds.add(o)));
   closure(Object.keys(D.fc || {}).map(k => (BY_RESULT.get(+k) || []).find(r => craftable(r, lv))).filter(Boolean)).forEach(id => craftIds.add(id));
   const gids = Object.keys(GATH).map(Number), vids = Object.keys(VEND).map(Number);
   const all = new Set([...craftIds, ...gids, ...vids, ...S.watch, ...S.listed, ...Object.keys(S.alerts || {}).map(Number), ...EXCH.map(e => e[1])]);
@@ -1173,7 +1174,46 @@ function renderMateria() {
   paginate(el, list, x => card({ id: x.id, tags: [[x.kind, x.kind === 'Combat' ? '' : 'gold'], [x.vel.toFixed(1) + '/day']], badge: fmtK(x.price), badgeCls: 'pos',
     kpis: [['Sells', fmtK(x.price)], ['Sold/day', x.vel.toFixed(1)], ['Per day', fmtK(x.daily), 'gold']], onOpen: () => openDetail(x.id, { kind: 'item', id: x.id }) }));
 }
+// ---- Aetherial reduction: ephemeral-node collectables → aethersand (+ crystals and clusters) ----
+// Mapping from FFXIV Teamcraft's community data. Yields vary per reduction, so this ranks by what one aethersand sells for.
+const AR = D.ar || {};
+const isCrystal = id => id >= 2 && id <= 19;
+function reductionList() {
+  if (!AGG) return [];
+  const mask = exMask(), out = [];
+  for (const [k, v] of Object.entries(AR)) {
+    const id = +k, [outs, g] = v;
+    if (g[6] && !S.folk) continue;
+    if (!(g[2] & mask)) continue;
+    const jobs = GJOBS.filter(([, , bit], i) => (g[0] & bit) && S.gOn[i] && g[1] <= (+S.gLv[i] || 0)).map(j => j[0]); if (!jobs.length) continue;
+    const sand = outs.find(o => !isCrystal(o)); if (!sand) continue;
+    const s = stat(AGG.data[sand], false); if (!s.price || s.stale) continue;
+    const bonus = outs.filter(isCrystal).map(o => ({ id: o, s: stat(AGG.data[o], false) }));
+    const t2 = timedState(g[4]);
+    out.push({ kind: 'reduce', id, g, jobs, sand, s, bonus, price: s.price, vel: s.vel, t: t2, daily: s.price * taxS() * Math.min(s.vel, 10) });
+  }
+  return out.sort((a, b) => (b.t && b.t.up ? 1 : 0) - (a.t && a.t.up ? 1 : 0) || b.daily - a.daily);
+}
+function renderReduction() {
+  const el = $('gatherList');
+  if (!AGG) { $('gatherSummary').textContent = ''; return emptyState(el, 'No prices yet', 'Tap Refresh prices first.'); }
+  const list = reductionList();
+  $('gatherSummary').textContent = list.length ? `${list.length} ephemeral-node collectables you can gather and reduce · ET ${etFmt(etNow())} · nodes up now first` : '';
+  if (!list.length) return emptyState(el, 'Nothing to reduce yet', 'Ephemeral nodes are in Heavensward and later zones. Check your gatherer levels and story progress in Settings.');
+  paginate(el, list, x => card({ id: x.id, tags: [[x.jobs.join('/') + ' ' + x.g[1], 'gold'], [`→ ${nm(x.sand)}`]].concat(x.t ? [[timedLabel(x.t), x.t.up ? 'good' : '']] : []).concat(x.g[3].length ? [[x.g[3][0]]] : []),
+    badge: `${fmtK(x.price)} a sand`, badgeCls: 'pos', kpis: [['Sand sells', fmtK(x.price)], ['Sand sold/day', x.vel.toFixed(1)], ['Bonus', x.bonus.map(b => nm(b.id).replace(/ (Crystal|Cluster)$/, m => m === ' Crystal' ? ' cryst.' : ' clust.')).join(', ') || '—']],
+    onOpen: () => {
+      $('detailTitle').textContent = nm(x.id); $('detailIcon').innerHTML = iconImg(x.id, 'ico lg'); $('detailTags').innerHTML = '';
+      $('detailBody').innerHTML = `<div class="callout"><div class="muted" style="font-size:13px">Gather as a collectable, then use Aetherial Reduction on it</div><b>Reduces into ${esc(nm(x.sand))}</b>
+        <div class="muted" style="font-size:14px">Plus ${x.bonus.map(b => esc(nm(b.id)) + (b.s.price ? ` (~${fmt(b.s.price)} each)` : '')).join(' and ')} as a bonus. ${esc(nm(x.sand))} sells for about ${fmt(x.price)} on ${esc(S.world)}, ${x.vel.toFixed(1)} a day. How many you get varies per reduction.</div></div>
+        <div class="section"><h4>Where and when</h4><div class="kv"><div>Gatherer</div><div class="v">${x.jobs.join(' / ')} · level ${x.g[1]}</div>${x.g[3].length ? `<div>Zones</div><div class="v">${x.g[3].map(esc).join('<br>')}</div>` : ''}${x.g[4].length ? `<div>Ephemeral windows (ET)</div><div class="v">${x.g[4].map(([a, d]) => etFmt(a) + '–' + etFmt((a + d) % 1440)).join('<br>')}</div><div>Right now</div><div class="v ${x.t && x.t.up ? 'pos' : ''}">${timedLabel(x.t)}</div>` : ''}</div></div>
+        <div class="section"><h4>How to do it</h4><ol class="psteps2"><li>Go to the zone while the ephemeral node is up and gather the item with Collect on.</li><li>Open Aetherial Reduction from your gatherer actions and reduce the collectables.</li><li>Sell the aethersand; keep or sell the crystals and clusters.</li></ol></div>
+        <div class="links"><a href="${garland(x.id)}" target="_blank" rel="noopener">Garland Tools</a><a href="${garland(x.sand)}" target="_blank" rel="noopener">${esc(nm(x.sand))}</a></div>`;
+      openSheet('detail');
+    } }));
+}
 function renderGather() {
+  if (P.gatherMode === 'reduce') return renderReduction();
   if (P.gatherMode === 'chain') return renderChains();
   if (P.gatherMode === 'zone') return renderZones();
   if (P.gatherMode === 'scrip') { if (!AGG) { $('gatherSummary').textContent = ''; } return renderGatherScrips(); }
@@ -2058,6 +2098,7 @@ Object.entries(STRAT.sources || {}).forEach(([k, v]) => { SRC[k] = [v.label, v.u
 const EXTRA_TOOLS = {
   chain: ['Open Gather → craft', () => { P.gatherMode = 'chain'; saveP(); showTab('gather'); renderGather(); }],
   fcw: ['Open Crafts → FC workshop', () => { P.craftMode = 'fcw'; saveP(); showTab('crafts'); renderCrafts(); }],
+  reduce: ['Open Gather → Reduction', () => { P.gatherMode = 'reduce'; saveP(); showTab('gather'); renderGather(); }],
   materia: ['See materia prices', () => { P.flipMode = 'materia'; saveP(); showTab('flips'); renderFlips(); }],
 };
 const goTo = (tab, set) => () => { if (set) set(); saveP(); showTab(tab); if (typeof computeFlips === 'function') { computeFlips(); } renderAllViews(); };
@@ -2446,7 +2487,7 @@ function syncCraftMode() { const s = P.craftMode !== 'sell'; const modes = ['sel
 chipGroup($('craftMode'), [['sell', 'Craft to sell'], ['gcd', 'GC turn-ins'], ['fcw', 'FC workshop'], ['scrip', 'Scrip farm'], ['leve', 'Leves']], () => [P.craftMode || 'sell'], cur => { P.craftMode = cur[0]; saveP(); syncCraftMode(); renderCrafts(); }, true);
 syncCraftMode();
 chipGroup($('gatherChips'), GJOBS.map(([k, n]) => [k, n]), () => P.gatherChips, cur => { P.gatherChips = cur; saveP(); renderGather(); });
-chipGroup($('gatherMode'), [['sell', 'Gather to sell'], ['chain', 'Gather → craft'], ['zone', 'Best zones'], ['scrip', 'Scrip farm']], () => [P.gatherMode || 'sell'], cur => { P.gatherMode = cur[0]; saveP(); $('gScripGoalRow').hidden = P.gatherMode !== 'scrip'; renderGather(); }, true);
+chipGroup($('gatherMode'), [['sell', 'Gather to sell'], ['chain', 'Gather → craft'], ['reduce', 'Reduction'], ['zone', 'Best zones'], ['scrip', 'Scrip farm']], () => [P.gatherMode || 'sell'], cur => { P.gatherMode = cur[0]; saveP(); $('gScripGoalRow').hidden = P.gatherMode !== 'scrip'; renderGather(); }, true);
 $('gScripGoalRow').hidden = P.gatherMode !== 'scrip'; $('gScripGoal').value = P.scripGoal;
 chipGroup($('flipModes'), [['vendor', 'Vendor items'], ['world', 'Other worlds'], ['cur', 'Currencies'], ['materia', 'Materia'], ['vent', 'Ventures'], ['desynth', 'Desynth']], () => [P.flipMode], cur => { P.flipMode = cur[0]; saveP(); computeFlips(); renderFlips(); }, true);
 chipGroup($('curChips'), CUR, () => [S.curCh || 'purpleC'], cur => { S.curCh = cur[0]; saveS(); computeFlips(); renderFlips(); }, true);

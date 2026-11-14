@@ -72,6 +72,24 @@
    ]
   },
   {
+   "id": "reduce",
+   "title": "Aetherial reduction",
+   "kind": "Active · timed nodes",
+   "sum": "Gather collectables from ephemeral nodes and reduce them into aethersand, which crafters need, with crystals and clusters on the side.",
+   "steps": [
+    "Open Gather → Reduction. It lists ephemeral-node collectables you can reach, the aethersand each reduces into, and what that sand sells for.",
+    "Go when the node is up (the list shows live Eorzea-time windows) and gather with Collect on.",
+    "Reduce them with Aetherial Reduction.",
+    "Sell the aethersand; crystals and clusters are a bonus to keep or sell."
+   ],
+   "reported": "Guides list aethersand farming as an easy gathering money-maker that also brings in crystals and clusters, and note many players get their crystals this way as a by-product.",
+   "src": [
+    "ivgather",
+    "ivcryst",
+    "tcred"
+   ]
+  },
+  {
    "id": "gc",
    "title": "Do your own Grand Company turn-ins",
    "kind": "Daily · 10 min",
@@ -338,6 +356,18 @@
   "wsdata": {
    "label": "Game data: Free Company workshop project requirements (ffxiv-datamining)",
    "url": "https://github.com/xivapi/ffxiv-datamining"
+  },
+  "ivgather": {
+   "label": "Icy Veins: making gil with gathering (Dawntrail)",
+   "url": "https://www.icy-veins.com/ffxiv/gil-making-gathering"
+  },
+  "ivcryst": {
+   "label": "Icy Veins: shards, crystals and clusters",
+   "url": "https://www.icy-veins.com/ffxiv/gathering-shards-crystals-and-clusters-in-ffxiv"
+  },
+  "tcred": {
+   "label": "FFXIV Teamcraft community data: reduction results (MIT)",
+   "url": "https://github.com/ffxiv-teamcraft/ffxiv-teamcraft"
   }
  },
  "researched": "2026-11-13",

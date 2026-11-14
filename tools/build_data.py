@@ -405,6 +405,24 @@ for d in rows('CompanyCraftSequence'):
 fc_demand = {str(it): [v['q'], len(v['p']), sorted(v['p'])[:3]] for it, v in fcw.items()}
 used |= {int(k) for k in fc_demand}
 
+# ---------------- aetherial reduction (community data from FFXIV Teamcraft, MIT) ----------------
+# Which ephemeral-node collectables reduce into which aethersand and crystals/clusters. Quantities vary per reduction.
+reduce_out = collections.defaultdict(list)
+try:
+    with urllib.request.urlopen('https://raw.githubusercontent.com/ffxiv-teamcraft/ffxiv-teamcraft/staging/libs/data/src/lib/json/reduction.json', timeout=60) as r:
+        for out_id, sources in json.loads(r.read()).items():
+            for src in sources:
+                reduce_out[int(src)].append(int(out_id))
+except Exception as e:
+    print('reduction data unavailable:', e)
+reduction = {}
+for src, outs in reduce_out.items():
+    g = G.get(src)
+    if not g or g['l'] > 100:
+        continue
+    reduction[str(src)] = [sorted(set(outs)), pack_gather(g)]
+    used.add(src); used |= set(outs)
+
 # ---------------- desynthesizable gear, worlds, names, icons ----------------
 desynth = [i for i in items if mkt(i) and I(items[i]['Desynth']) > 0 and I(items[i]['EquipSlotCategory']) > 0]
 # Materia (from spiritbonding, scrips, etc.), for the materia price list
@@ -420,7 +438,7 @@ data = {
     'built': __import__('datetime').datetime.now(__import__('datetime').timezone.utc).strftime('%Y-%m-%dT%H:%MZ'),
     'r': recipes, 'n': names, 'm': marketable, 'c': {c: uic.get(c, '') for c in cats},
     'g': gather_sell, 'gcol': gather_col, 'gf': gather_all, 'v': vendors, 'b': books, 'w': worlds, 'i': icons,
-    'rlt': rlt_out, 'x': exchanges, 'cs': list(cs.values()), 'lv': leves, 'rt': ventures, 'ds': desynth, 'gcs': gc_pool, 'mt': materia, 'fc': fc_demand,
+    'rlt': rlt_out, 'x': exchanges, 'cs': list(cs.values()), 'lv': leves, 'rt': ventures, 'ds': desynth, 'gcs': gc_pool, 'mt': materia, 'fc': fc_demand, 'ar': reduction,
 }
 os.makedirs(os.path.dirname(os.path.abspath(OUT)), exist_ok=True)
 # Leave the file untouched when nothing but the timestamp would change, so the nightly job only commits real updates.

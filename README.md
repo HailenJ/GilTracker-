@@ -8,7 +8,7 @@ What to craft, gather and sell on your FFXIV world today, with live Universalis 
 - `data/strategies.json` – the researched playbook and event calendar. Ask Claude to refresh it.
 - `vendor/sim.js` – Teamcraft's open-source crafting simulator (MIT, see `vendor/LICENSE-teamcraft-simulator.txt`); `vendor/solver.js` finds rotations with it.
 - `sw.js`, `manifest.webmanifest`, `icons/` – home-screen app and offline support
-- `tools/build_data.py` – builds `data/game.json` from https://github.com/xivapi/ffxiv-datamining
+- `tools/build_data.py` – builds `data/game.json` from https://github.com/xivapi/ffxiv-datamining, plus aetherial reduction results from FFXIV Teamcraft's community data (MIT)
 - `.github/workflows/update-data.yml` – the nightly job
 
 ## One-time setup
